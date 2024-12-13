@@ -1,17 +1,26 @@
 {
 	"pages": [{
-		"path": "pages/index/index",
+		"path": "pages/login/login",
 		"style": {
-			"navigationBarTitleText": "uni-app"
+			"navigationBarTitleText": "登录",
+			"navigationStyle": "custom"
+		}
+	}, {
+		"path": "pages/home/home",
+		"style": {
+			"navigationBarTitleText": "智慧车间",
+			"navigationStyle": "custom"
+		}
+	}, {
+		"path": "pages/queue/queue",
+		"style": {
+			"navigationBarTitleText": "队列详情"
 		}
 	}],
 	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8",
-		"app-plus": {
-			"background": "#efeff4"
-		}
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "智慧车间",
+		"navigationBarBackgroundColor": "#1a2a6c",
+		"backgroundColor": "#F5F7FA"
 	}
 }
