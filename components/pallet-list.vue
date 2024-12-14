@@ -157,46 +157,67 @@ export default {
     
     .actions {
       display: flex;
-      gap: 20rpx;
       
       .action-btn {
         display: flex;
         align-items: center;
-        padding: 12rpx 24rpx;
-        border-radius: 30rpx;
+        padding: 16rpx 32rpx;
+        border-radius: 12rpx;
         border: none;
-        transition: all $transition-fast;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-right: 24rpx;
         
         .iconfont {
           font-size: 28rpx;
+          transition: transform 0.3s ease;
         }
         
         &.move {
-          background: rgba(24, 144, 255, 0.1);
-          color: #1890ff;
+          background: linear-gradient(135deg, $primary-color, $primary-light);
+          color: #fff;
+          box-shadow: 0 4rpx 15rpx rgba($primary-color, 0.3);
           
           &:active {
-            background: rgba(24, 144, 255, 0.2);
+            transform: translateY(2rpx);
+            box-shadow: 0 2rpx 8rpx rgba($primary-color, 0.2);
+            
+            .iconfont {
+              transform: rotate(-15deg);
+            }
           }
         }
         
         &.delete {
-          background: rgba(245, 34, 45, 0.1);
-          color: #f5222d;
+          background: linear-gradient(135deg, #ff4757, #ff6b81);
+          color: #fff;
+          box-shadow: 0 4rpx 15rpx rgba(#ff4757, 0.3);
           
           &:active {
-            background: rgba(245, 34, 45, 0.2);
+            transform: translateY(2rpx);
+            box-shadow: 0 2rpx 8rpx rgba(#ff4757, 0.2);
+            
+            .iconfont {
+              transform: rotate(15deg);
+            }
           }
         }
         
         &[disabled] {
           opacity: 0.5;
           pointer-events: none;
+          background: linear-gradient(135deg, #ccc, #999);
+          box-shadow: none;
         }
         
         .btn-text {
           font-size: 26rpx;
           margin-left: 8rpx;
+          font-weight: 500;
+          letter-spacing: 1rpx;
+        }
+        
+        &:last-child {
+          margin-right: 0;
         }
       }
     }
