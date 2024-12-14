@@ -14,10 +14,7 @@
 	}, {
 		"path": "pages/queue/queue",
 		"style": {
-			"navigationStyle": "custom",
-			"backgroundColor": "#1a2a6c",
-			"backgroundColorTop": "#1a2a6c",
-			"backgroundColorBottom": "#f5f7fa"
+			"navigationStyle": "custom"
 		}
 	}],
 	"globalStyle": {

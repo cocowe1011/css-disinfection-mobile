@@ -13,6 +13,7 @@
     <scroll-view 
       class="scroll-content"
       scroll-y
+      :style="{ opacity: pageReady ? 1 : 0 }"
     >
       <view class="content">
         <!-- 订单信息卡片 -->
@@ -88,7 +89,7 @@ export default {
             { id: 8, name: '预热房C1', palletCount: 5 },
             { id: 9, name: '预热房D1', palletCount: 2 },
             { id: 10, name: '预热房E1', palletCount: 6 },
-            { id: 11, name: '预���房F1', palletCount: 4 },
+            { id: 11, name: '预热房F1', palletCount: 4 },
             { id: 12, name: '预热房G1', palletCount: 3 },
           ]
         },
@@ -118,12 +119,17 @@ export default {
         }
       ],
       statusBarHeight: 0,
+      pageReady: false
     }
   },
-  onLoad() {
+  async onLoad() {
     // 获取状态栏高度
     const systemInfo = uni.getSystemInfoSync()
     this.statusBarHeight = systemInfo.statusBarHeight
+    
+    // 模拟数据加载
+    await new Promise(resolve => setTimeout(resolve, 100))
+    this.pageReady = true
   },
   methods: {
     handleLogout() {
@@ -204,11 +210,12 @@ export default {
   
   .scroll-content {
     position: fixed;
-    top: calc(var(--status-bar-height) + 88rpx);  // 状态栏 + 导航栏高度
+    top: calc(var(--status-bar-height) + 88rpx);
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 1;
+    transition: opacity 0.3s ease;
   }
   
   .content {
