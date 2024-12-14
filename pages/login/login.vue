@@ -1,5 +1,13 @@
 <template>
   <view class="login-container">
+    <!-- Loading 遮罩 -->
+    <view class="loading-mask" v-if="loading">
+      <view class="loading-content">
+        <view class="loading-icon"></view>
+        <text class="loading-text">登录中...</text>
+      </view>
+    </view>
+    
     <view class="login-content">
       <view class="login-header">
         <image class="logo" src="/static/images/logo.png" mode="aspectFit"></image>
@@ -73,27 +81,31 @@ export default {
   },
   methods: {
     async handleLogin() {
-      if (this.loading || !this.username || !this.password) return
+      if (!this.username || !this.password) {
+        uni.showToast({
+          title: '请输入用户名和密码',
+          icon: 'none'
+        })
+        return
+      }
       
       this.loading = true
-      
       try {
         // 模拟登录请求
-        await new Promise(resolve => setTimeout(resolve, 1500))
+        await new Promise(resolve => setTimeout(resolve, 1000))
         
         // 保存登录状态
-        uni.setStorageSync('token', 'demo-token')
-        uni.setStorageSync('userInfo', {
-          username: this.username
-        })
+        uni.setStorageSync('token', 'demo_token')
+        uni.setStorageSync('username', this.username)
         
+        // 跳转到首页
         uni.reLaunch({
           url: '/pages/home/home'
         })
       } catch (error) {
         uni.showToast({
-          title: '登录失败，请重试',
-          icon: 'none'
+          title: '登录失败',
+          icon: 'error'
         })
       } finally {
         this.loading = false
@@ -292,6 +304,48 @@ export default {
         transform: rotate(45deg);
       }
     }
+  }
+  
+  .loading-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    
+    .loading-content {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 40rpx;
+      border-radius: 16rpx;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      
+      .loading-icon {
+        width: 60rpx;
+        height: 60rpx;
+        border: 4rpx solid rgba(255, 255, 255, 0.2);
+        border-top: 4rpx solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20rpx;
+      }
+      
+      .loading-text {
+        color: #fff;
+        font-size: 28rpx;
+      }
+    }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 }
 </style> 
