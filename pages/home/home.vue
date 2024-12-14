@@ -9,32 +9,44 @@
       <view class="logout" @tap="handleLogout">退出登录</view>
     </view>
     
-    <view class="content">
-      <!-- 订单信息卡片 -->
-      <order-card :order="currentOrder"></order-card>
-      
-      <!-- 队列区域列表 -->
-      <view class="queue-areas">
-        <view class="section-title">队列区域</view>
-        <view class="area-grid">
+    <!-- 可滚动的内容区域 -->
+    <scroll-view 
+      class="scroll-content"
+      scroll-y
+    >
+      <view class="content">
+        <!-- 订单信息卡片 -->
+        <order-card :order="currentOrder"></order-card>
+        
+        <!-- 队列区域列表 -->
+        <view class="queue-areas">
           <view 
-            class="area-item" 
-            v-for="area in queueAreas" 
-            :key="area.id"
-            @tap="navigateToQueue(area)"
+            class="queue-group" 
+            v-for="group in queueGroups" 
+            :key="group.title"
           >
-            <view class="area-content">
-              <text class="area-name">{{ area.name }}</text>
-              <text class="pallet-count">托盘数：{{ area.palletCount }}</text>
-            </view>
-            <view class="area-decoration">
-              <text class="area-id">{{ area.id.toString().padStart(2, '0') }}</text>
-              <text class="iconfont icon-right"></text>
+            <view class="section-title">{{ group.title }}</view>
+            <view class="area-grid">
+              <view 
+                class="area-item" 
+                v-for="area in group.areas" 
+                :key="area.id"
+                @tap="navigateToQueue(area)"
+              >
+                <view class="area-content">
+                  <text class="area-name">{{ area.name }}</text>
+                  <text class="pallet-count">托盘数：{{ area.palletCount }}</text>
+                </view>
+                <view class="area-decoration">
+                  <text class="area-id">{{ area.id }}</text>
+                  <text class="iconfont icon-right"></text>
+                </view>
+              </view>
             </view>
           </view>
         </view>
       </view>
-    </view>
+    </scroll-view>
   </view>
 </template>
 
@@ -52,14 +64,58 @@ export default {
         batchId: 'B2024032001',
         productName: '消毒液',
         preheatingRoom: 'A区预热房',
+        sterilizer: '1号灭菌柜',
         inPort: '1号进货口',
         outPort: '2号出货口',
         status: '进行中',
       },
-      queueAreas: [
-        { id: 1, name: 'A区域', palletCount: 5 },
-        { id: 2, name: 'B区域', palletCount: 3 },
-        { id: 3, name: 'C区域', palletCount: 7 }
+      queueGroups: [
+        {
+          title: '物流区域',
+          areas: [
+            { id: 1, name: '上货区', palletCount: 8 },
+            { id: 2, name: '下货区', palletCount: 5 },
+            { id: 3, name: '缓冲区1', palletCount: 3 },
+            { id: 4, name: '缓冲区2', palletCount: 4 },
+            { id: 5, name: '缓冲区3', palletCount: 6 },
+          ]
+        },
+        {
+          title: '预热房区域1',
+          areas: [
+            { id: 6, name: '预热房A1', palletCount: 4 },
+            { id: 7, name: '预热房B1', palletCount: 3 },
+            { id: 8, name: '预热房C1', palletCount: 5 },
+            { id: 9, name: '预热房D1', palletCount: 2 },
+            { id: 10, name: '预热房E1', palletCount: 6 },
+            { id: 11, name: '预���房F1', palletCount: 4 },
+            { id: 12, name: '预热房G1', palletCount: 3 },
+          ]
+        },
+        {
+          title: '预热房区域2',
+          areas: [
+            { id: 13, name: '预热房A2', palletCount: 5 },
+            { id: 14, name: '预热房B2', palletCount: 4 },
+            { id: 15, name: '预热房C2', palletCount: 3 },
+            { id: 16, name: '预热房D2', palletCount: 6 },
+            { id: 17, name: '预热房E2', palletCount: 2 },
+            { id: 18, name: '预热房F2', palletCount: 5 },
+            { id: 19, name: '预热房G2', palletCount: 4 },
+          ]
+        },
+        {
+          title: '灭菌区域',
+          areas: [
+            { id: 20, name: '灭菌区1#', palletCount: 7 },
+            { id: 21, name: '灭菌区2#', palletCount: 5 },
+            { id: 22, name: '灭菌区3#', palletCount: 4 },
+            { id: 23, name: '灭菌区4#', palletCount: 6 },
+            { id: 24, name: '灭菌区5#', palletCount: 3 },
+            { id: 25, name: '灭菌区6#', palletCount: 5 },
+            { id: 26, name: '灭菌区7#', palletCount: 4 },
+          ]
+        }
       ],
       statusBarHeight: 0,
     }
@@ -77,8 +133,30 @@ export default {
       })
     },
     navigateToQueue(area) {
+      uni.showLoading({
+        title: '加载中...',
+        mask: true
+      })
+      
+      // 先准备好数据
+      const palletList = [
+        { id: 1, code: 'P001', createTime: '2024-03-20 10:00' },
+        { id: 2, code: 'P002', createTime: '2024-03-20 10:15' },
+        // ... 其他数据
+      ]
+      
+      // 将数据存到全局状态或缓存中
+      getApp().globalData = getApp().globalData || {}
+      getApp().globalData.palletList = palletList
+      
       uni.navigateTo({
-        url: `/pages/queue/queue?id=${area.id}&name=${area.name}`
+        url: `/pages/queue/queue?id=${area.id}&name=${area.name}`,
+        success: () => {
+          uni.hideLoading()
+        },
+        fail: () => {
+          uni.hideLoading()
+        }
       })
     }
   }
@@ -100,14 +178,17 @@ export default {
   }
   
   .header {
+    position: fixed;
+    top: var(--status-bar-height);
+    left: 0;
+    right: 0;
     background: linear-gradient(90deg, #1a2a6c, #b21f1f);
-    padding: 0 30rpx;
-    padding-top: calc(var(--status-bar-height) + 20rpx);
-    padding-bottom: 40rpx;
+    padding: 20rpx 30rpx;
     display: flex;
     justify-content: space-between;
     align-items: center;
     color: #fff;
+    z-index: 100;
     
     .welcome {
       font-size: 32rpx;
@@ -121,8 +202,18 @@ export default {
     }
   }
   
+  .scroll-content {
+    position: fixed;
+    top: calc(var(--status-bar-height) + 88rpx);  // 状态栏 + 导航栏高度
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+  }
+  
   .content {
     padding: 30rpx;
+    padding-bottom: env(safe-area-inset-bottom);  // 适配底部安全区域
     
     .section-title {
       font-size: 32rpx;

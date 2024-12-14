@@ -16,7 +16,7 @@
             @tap="handleSelect(queue)"
           >
             <text class="queue-name">{{ queue.name }}</text>
-            <text class="count">托盘数：{{ queue.count }}</text>
+            <text class="count">{{ queue.count }}托盘</text>
           </view>
         </view>
       </scroll-view>
@@ -39,17 +39,26 @@ export default {
   },
   data() {
     return {
+      screenWidth: 375,
       queues: [
-        { id: 1, name: '1号队列', count: 5 },
-        { id: 2, name: '2号队列', count: 3 },
-        { id: 3, name: '3号队列', count: 7 },
-        { id: 4, name: '4号队列', count: 2 },
-        { id: 5, name: '5号队列', count: 4 },
-        { id: 6, name: '6号队列', count: 6 },
-        { id: 7, name: '7号队列', count: 3 },
-        { id: 8, name: '8号队列', count: 5 }
+        { id: 1, name: '预热区1号队列', count: 5 },
+        { id: 2, name: '预热区2号队列', count: 3 },
+        { id: 3, name: '预热区3号队列', count: 7 },
+        { id: 4, name: '灭菌区1号队列', count: 2 },
+        { id: 5, name: '灭菌区2号队列', count: 4 },
+        { id: 6, name: '灭菌区3号队列', count: 6 },
+        { id: 7, name: '冷却区1号队列', count: 3 },
+        { id: 8, name: '冷却区2号队列', count: 5 },
+        { id: 9, name: '冷却区3号队列', count: 4 },
+        { id: 10, name: '包装区1号队列', count: 6 },
+        { id: 11, name: '包装区2号队列', count: 3 },
+        { id: 12, name: '包装区3号队列', count: 5 }
       ]
     }
+  },
+  mounted() {
+    const systemInfo = uni.getSystemInfoSync()
+    this.screenWidth = systemInfo.windowWidth
   },
   computed: {
     availableQueues() {
@@ -83,7 +92,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
   }
   
   .content {
@@ -92,11 +101,11 @@ export default {
     right: 0;
     bottom: 0;
     background: #fff;
-    border-radius: 20rpx 20rpx 0 0;
-    max-height: 70vh;
+    border-radius: 24rpx 24rpx 0 0;
+    max-height: 65vh;
     
     .header {
-      padding: 30rpx;
+      padding: 20rpx 30rpx;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -104,51 +113,82 @@ export default {
       
       .title {
         font-size: 32rpx;
-        color: #333;
+        color: $text-primary;
         font-weight: bold;
       }
       
       .close {
         font-size: 40rpx;
-        color: #999;
-        padding: 0 20rpx;
+        color: $text-secondary;
+        padding: 10rpx;
+        margin: -10rpx;
       }
     }
     
     .queue-list {
-      max-height: calc(70vh - 100rpx);
+      max-height: calc(65vh - 80rpx);
       padding: 20rpx;
+      box-sizing: border-box;
       
       .queue-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 20rpx;
+        gap: 16rpx;
         
         .queue-item {
-          background: #f5f7fa;
-          padding: 30rpx 20rpx;
+          padding: 20rpx;
+          background: linear-gradient(135deg, #f6f7f9, #f0f2f5);
           border-radius: 12rpx;
-          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          min-width: 0;
+          border: 1px solid rgba($primary-color, 0.1);
           
           .queue-name {
-            font-size: 32rpx;
-            color: #333;
-            font-weight: bold;
-            margin-bottom: 10rpx;
-            display: block;
+            font-size: 30rpx;
+            color: $primary-color;
+            font-weight: 500;
+            margin-bottom: 8rpx;
+            width: 100%;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 10rpx;
+            box-sizing: border-box;
           }
           
           .count {
-            font-size: 26rpx;
-            color: #666;
+            font-size: 24rpx;
+            color: rgba($primary-color, 0.7);
           }
           
           &:active {
-            background: #e6f7ff;
+            background: linear-gradient(135deg, rgba($primary-color, 0.08), rgba($primary-color, 0.12));
+            border-color: rgba($primary-color, 0.2);
+            transform: scale(0.98);
           }
         }
       }
     }
   }
 }
+
+/* #ifdef H5 */
+@media screen and (min-width: 768px) {
+  .queue-selector {
+    .queue-list {
+      padding: 20rpx 30rpx;
+      
+      .queue-grid {
+        grid-template-columns: repeat(3, 1fr);
+        margin: 0;
+      }
+    }
+  }
+}
+/* #endif */
 </style> 

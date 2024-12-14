@@ -19,22 +19,11 @@
 </script>
 
 <style lang="scss">
-	/*每个页面公共css */
-	@import '@/uni_modules/uni-scss/index.scss';
-	/* #ifndef APP-NVUE */
-	@import '@/static/customicons.css';
-	// 设置整个项目的背景色
-	page {
-		background-color: #f5f5f5;
-		font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
-			Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei',
-			sans-serif;
-	}
+@import '@/styles/variables.scss';
 
-	/* #endif */
-	.example-info {
-		font-size: 14px;
-		color: #333;
-		padding: 10px;
-	}
+/*每个页面公共css */
+page {
+	background-color: #f5f5f5;
+	font-family: $font-family;
+}
 </style>

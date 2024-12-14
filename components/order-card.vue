@@ -2,7 +2,7 @@
   <view class="order-card" :class="{ loading }">
     <view class="card-content" v-if="!loading">
       <!-- 左侧状态条 -->
-      <view class="status-bar" :class="order.status"></view>
+      <view class="status-bar"></view>
       
       <!-- 主要内容 -->
       <view class="main-content">
@@ -10,31 +10,56 @@
         <view class="top-info">
           <view class="product-info">
             <text class="product-name">{{ order.productName }}</text>
-            <text class="batch-id">{{ order.batchId }}</text>
+            <view class="batch-info">
+              <text class="label">批次号</text>
+              <text class="batch-id">{{ order.batchId }}</text>
+            </view>
           </view>
-          <view class="status-info" :class="order.status">
-            <text class="iconfont" :class="statusIcon"></text>
-            <text class="status-text">{{ order.status }}</text>
+          <view class="status-info">
+            <text class="iconfont icon-processing"></text>
+            <text class="status-text">进行中</text>
           </view>
         </view>
         
         <!-- 详细信息 -->
         <view class="detail-info">
-          <view class="info-row">
-            <view class="info-col">
-              <text class="iconfont icon-preheat"></text>
-              <text class="label">预热房</text>
-              <text class="value">{{ order.preheatingRoom }}</text>
+          <view class="info-section">
+            <view class="section-title">生产设备</view>
+            <view class="section-content">
+              <view class="info-item">
+                <text class="iconfont icon-preheat"></text>
+                <view class="item-content">
+                  <text class="label">预热房</text>
+                  <text class="value">{{ order.preheatingRoom }}</text>
+                </view>
+              </view>
+              <view class="info-item">
+                <text class="iconfont icon-sterilizer"></text>
+                <view class="item-content">
+                  <text class="label">灭菌柜</text>
+                  <text class="value">{{ order.sterilizer }}</text>
+                </view>
+              </view>
             </view>
-            <view class="info-col">
-              <text class="iconfont icon-in"></text>
-              <text class="label">进货口</text>
-              <text class="value">{{ order.inPort }}</text>
-            </view>
-            <view class="info-col">
-              <text class="iconfont icon-out"></text>
-              <text class="label">出货口</text>
-              <text class="value">{{ order.outPort }}</text>
+          </view>
+          
+          <view class="info-section">
+            <view class="section-title">出入口</view>
+            <view class="section-content">
+              <view class="info-item">
+                <text class="iconfont icon-in"></text>
+                <view class="item-content">
+                  <text class="label">进货口</text>
+                  <text class="value">{{ order.inPort }}</text>
+                </view>
+              </view>
+              <view class="info-item">
+                <text class="iconfont icon-out"></text>
+                <view class="item-content">
+                  <text class="label">出货口</text>
+                  <text class="value">{{ order.outPort }}</text>
+                </view>
+              </view>
             </view>
           </view>
         </view>
@@ -50,7 +75,7 @@
           <view class="skeleton-tag"></view>
         </view>
         <view class="skeleton-info">
-          <view class="skeleton-row" v-for="i in 3" :key="i"></view>
+          <view class="skeleton-row" v-for="i in 4" :key="i"></view>
         </view>
       </view>
     </view>
@@ -68,16 +93,6 @@ export default {
     loading: {
       type: Boolean,
       default: false
-    }
-  },
-  computed: {
-    statusIcon() {
-      const icons = {
-        '进行中': 'icon-processing',
-        '待处理': 'icon-pending',
-        '已完成': 'icon-completed'
-      }
-      return icons[this.order.status] || 'icon-default'
     }
   }
 }
@@ -105,15 +120,7 @@ export default {
     
     .status-bar {
       width: 12rpx;
-      background: $primary-gradient;
-      
-      &.进行中 {
-        background: linear-gradient(to bottom, $success-color, adjust-hue($success-color, 20deg));
-      }
-      
-      &.待处理 {
-        background: linear-gradient(to bottom, $warning-color, adjust-hue($warning-color, 20deg));
-      }
+      background: linear-gradient(to bottom, $success-color, adjust-hue($success-color, 20deg));
     }
     
     .main-content {
@@ -125,22 +132,34 @@ export default {
         justify-content: space-between;
         align-items: flex-start;
         margin-bottom: 30rpx;
+        padding-bottom: 20rpx;
+        border-bottom: 1px solid $border-color;
         
         .product-info {
           .product-name {
-            font-size: 34rpx;
+            font-size: 36rpx;
             color: $text-primary;
             font-weight: bold;
             margin-bottom: 12rpx;
-            display: block;
           }
           
-          .batch-id {
-            font-size: 24rpx;
-            color: $text-secondary;
-            background: $bg-light;
-            padding: 4rpx 16rpx;
-            border-radius: 20rpx;
+          .batch-info {
+            display: flex;
+            align-items: center;
+            
+            .label {
+              font-size: 24rpx;
+              color: $text-secondary;
+              margin-right: 10rpx;
+            }
+            
+            .batch-id {
+              font-size: 26rpx;
+              color: $primary-color;
+              background: rgba($primary-color, 0.1);
+              padding: 4rpx 16rpx;
+              border-radius: 20rpx;
+            }
           }
         }
         
@@ -150,16 +169,7 @@ export default {
           padding: 8rpx 20rpx;
           border-radius: 30rpx;
           background: rgba($success-color, 0.1);
-          
-          &.进行中 {
-            background: rgba($success-color, 0.1);
-            color: $success-color;
-          }
-          
-          &.待处理 {
-            background: rgba($warning-color, 0.1);
-            color: $warning-color;
-          }
+          color: $success-color;
           
           .iconfont {
             font-size: 28rpx;
@@ -174,36 +184,62 @@ export default {
       }
       
       .detail-info {
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          gap: 20rpx;
+        .info-section {
+          margin-bottom: 24rpx;
           
-          .info-col {
-            flex: 1;
-            text-align: center;
-            padding: 20rpx;
-            background: $bg-light;
-            border-radius: $border-radius;
+          &:last-child {
+            margin-bottom: 0;
+          }
+          
+          .section-title {
+            font-size: 24rpx;
+            color: $text-secondary;
+            margin-bottom: 16rpx;
+            padding-left: 16rpx;
+            border-left: 4rpx solid $primary-color;
+          }
+          
+          .section-content {
+            display: flex;
+            gap: 20rpx;
             
-            .iconfont {
-              font-size: 40rpx;
-              color: $text-secondary;
-              margin-bottom: 12rpx;
-              display: block;
-            }
-            
-            .label {
-              font-size: 24rpx;
-              color: $text-secondary;
-              margin-bottom: 8rpx;
-              display: block;
-            }
-            
-            .value {
-              font-size: 28rpx;
-              color: $text-primary;
-              font-weight: 500;
+            .info-item {
+              flex: 1;
+              display: flex;
+              align-items: center;
+              padding: 20rpx;
+              background: $bg-light;
+              border-radius: $border-radius;
+              transition: all $transition-fast;
+              
+              &:hover {
+                background: darken($bg-light, 2%);
+              }
+              
+              .iconfont {
+                font-size: 40rpx;
+                color: $primary-color;
+                margin-right: 16rpx;
+              }
+              
+              .item-content {
+                flex: 1;
+                text-align: left;
+                
+                .label {
+                  font-size: 24rpx;
+                  color: $text-secondary;
+                  margin-bottom: 6rpx;
+                  display: block;
+                }
+                
+                .value {
+                  font-size: 28rpx;
+                  color: $text-primary;
+                  font-weight: 500;
+                  line-height: 1.4;
+                }
+              }
             }
           }
         }

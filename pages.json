@@ -14,13 +14,16 @@
 	}, {
 		"path": "pages/queue/queue",
 		"style": {
-			"navigationBarTitleText": "队列详情"
+			"navigationStyle": "custom",
+			"backgroundColor": "#1a2a6c",
+			"backgroundColorTop": "#1a2a6c",
+			"backgroundColorBottom": "#f5f7fa"
 		}
 	}],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
 		"navigationBarTitleText": "智慧车间",
-		"navigationBarBackgroundColor": "#1a2a6c",
+		"navigationBarBackgroundColor": "#16222A",
 		"backgroundColor": "#F5F7FA"
 	}
 }
