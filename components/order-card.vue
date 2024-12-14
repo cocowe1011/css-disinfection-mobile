@@ -201,19 +201,22 @@ export default {
           
           .section-content {
             display: flex;
-            gap: 20rpx;
+            margin: -10rpx;
             
             .info-item {
               flex: 1;
               display: flex;
               align-items: center;
+              margin: 10rpx;
               padding: 20rpx;
-              background: $bg-light;
+              background: #e5eaf2;
               border-radius: $border-radius;
               transition: all $transition-fast;
+              box-shadow: 0 4rpx 12rpx rgba(26, 42, 108, 0.06);
               
               &:hover {
-                background: darken($bg-light, 2%);
+                background: #dce3ed;
+                box-shadow: 0 6rpx 16rpx rgba(26, 42, 108, 0.1);
               }
               
               .iconfont {

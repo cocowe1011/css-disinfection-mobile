@@ -68,6 +68,9 @@ export default {
           }
         }
       })
+    },
+    handleTap(item) {
+      this.$emit('tap', item);
     }
   },
   mounted() {

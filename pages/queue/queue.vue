@@ -43,6 +43,7 @@
           @delete="handleDelete"
           @move="handleMove"
           :loading="loading"
+          @tap="onPalletTap"
         ></pallet-list>
       </view>
     </scroll-view>
@@ -354,6 +355,10 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    onPalletTap(item) {
+      // 处理托盘点击事件
+      console.log('托盘被点击：', item);
     }
   }
 }
