@@ -58,6 +58,145 @@
   </view>
 </template>
 
+<script>
+import PalletList from '@/components/pallet-list.vue'
+import QueueSelector from '@/components/queue-selector.vue'
+import ScanButton from '@/components/scan-button.vue'
+import request from '@/config/request'
+
+export default {
+  components: {
+    PalletList,
+    QueueSelector,
+    ScanButton
+  },
+  data() {
+    return {
+      areaId: '',
+      areaName: '',
+      palletList: [],
+      showQueueSelector: false,
+      currentPallet: null,
+      scanning: false,
+      loading: true,
+      navBgColor: '#2B32B2',
+      navTextColor: '#FFFFFF',
+      pageReady: false,
+      isLoaded: false,
+      isReady: false
+    }
+  },
+  async onLoad(options) {
+    console.log('接收到的参数:', options)
+    this.areaId = options.queueId
+    this.areaName = options.name
+    
+    // 获取托盘数据
+    await this.fetchPalletList()
+  },
+  methods: {
+    goBack() {
+      uni.navigateBack()
+    },
+    async handleScan() {
+      if (this.scanning) return
+      this.scanning = true
+      
+      try {
+        const res = await uni.scanCode()
+        console.log('扫码结果：', res)
+        
+        // 这里添加托盘
+        this.palletList.push({
+          id: Date.now(),
+          code: res.result,
+          createTime: new Date().toLocaleString()
+        })
+        
+        uni.showToast({
+          title: '添加成功',
+          icon: 'success'
+        })
+      } catch (error) {
+        uni.showToast({
+          title: '扫描失败',
+          icon: 'error'
+        })
+      } finally {
+        this.scanning = false
+      }
+    },
+    handleDelete(pallet) {
+      const index = this.palletList.findIndex(p => p.id === pallet.id)
+      if (index > -1) {
+        this.palletList.splice(index, 1)
+      }
+    },
+    handleMove(pallet) {
+      this.currentPallet = pallet
+      this.showQueueSelector = true
+    },
+    handleQueueSelect(queue) {
+      if (this.currentPallet) {
+        const index = this.palletList.findIndex(p => p.id === this.currentPallet.id)
+        if (index > -1) {
+          this.palletList.splice(index, 1)
+          uni.showToast({
+            title: `移动到${queue.name}`,
+            icon: 'success'
+          })
+        }
+        this.currentPallet = null
+        this.showQueueSelector = false
+      }
+    },
+    async fetchPalletList() {
+      try {
+        console.log('请求参数:', { id: this.areaId })
+        // 直接拼接在URL中传递参数
+        const res = await request.get(`/queue_info/getQueueInfoById?id=${this.areaId}`)
+        
+        console.log('返回结果:', JSON.stringify(res))
+        if (res.code === '200' && res.data) {
+          let trayInfo = []
+          try {
+            trayInfo = res.data.trayInfo ? JSON.parse(res.data.trayInfo) : []
+          } catch (e) {
+            console.error('解析托盘信息失败:', e)
+          }
+          
+          // 转换托盘数据格式
+          this.palletList = trayInfo.map(tray => ({
+            id: tray.trayCode, // 使用托盘编号作为唯一标识
+            code: tray.trayCode,
+            createTime: tray.trayTime,
+            batchId: tray.batchId
+          }))
+        } else {
+          this.palletList = []
+          uni.showToast({
+            title: res.message || '获取数据失败',
+            icon: 'none'
+          })
+        }
+      } catch (error) {
+        console.error('获取托盘列表失败:', error)
+        uni.showToast({
+          title: '网络异常',
+          icon: 'error'
+        })
+        this.palletList = []
+      } finally {
+        this.loading = false
+      }
+    },
+    onPalletTap(item) {
+      // 处理托盘点击事件
+      console.log('托盘被点击：', item);
+    }
+  }
+}
+</script> 
 <style lang="scss" scoped>
 .queue-container {
   min-height: 100vh;
@@ -251,115 +390,3 @@
   to { transform: rotate(360deg); }
 }
 </style>
-
-<script>
-import PalletList from '@/components/pallet-list.vue'
-import QueueSelector from '@/components/queue-selector.vue'
-import ScanButton from '@/components/scan-button.vue'
-
-export default {
-  components: {
-    PalletList,
-    QueueSelector,
-    ScanButton
-  },
-  data() {
-    return {
-      areaId: '',
-      areaName: '',
-      palletList: [],
-      showQueueSelector: false,
-      currentPallet: null,
-      scanning: false,
-      loading: true,
-      navBgColor: '#2B32B2',
-      navTextColor: '#FFFFFF',
-      pageReady: false,
-      isLoaded: false,
-      isReady: false
-    }
-  },
-  async onLoad(options) {
-    this.areaId = options.id
-    this.areaName = options.name
-    
-    // 获取托盘数据
-    await this.fetchPalletList()
-  },
-  methods: {
-    goBack() {
-      uni.navigateBack()
-    },
-    async handleScan() {
-      if (this.scanning) return
-      this.scanning = true
-      
-      try {
-        const res = await uni.scanCode()
-        console.log('扫码结果：', res)
-        
-        // 这里添加托盘
-        this.palletList.push({
-          id: Date.now(),
-          code: res.result,
-          createTime: new Date().toLocaleString()
-        })
-        
-        uni.showToast({
-          title: '添加成功',
-          icon: 'success'
-        })
-      } catch (error) {
-        uni.showToast({
-          title: '扫描失败',
-          icon: 'error'
-        })
-      } finally {
-        this.scanning = false
-      }
-    },
-    handleDelete(pallet) {
-      const index = this.palletList.findIndex(p => p.id === pallet.id)
-      if (index > -1) {
-        this.palletList.splice(index, 1)
-      }
-    },
-    handleMove(pallet) {
-      this.currentPallet = pallet
-      this.showQueueSelector = true
-    },
-    handleQueueSelect(queue) {
-      if (this.currentPallet) {
-        const index = this.palletList.findIndex(p => p.id === this.currentPallet.id)
-        if (index > -1) {
-          this.palletList.splice(index, 1)
-          uni.showToast({
-            title: `移动到${queue.name}`,
-            icon: 'success'
-          })
-        }
-        this.currentPallet = null
-        this.showQueueSelector = false
-      }
-    },
-    async fetchPalletList() {
-      try {
-        // 这里是实际的数据获取逻辑
-        // 模拟异步请求
-        await new Promise(resolve => setTimeout(resolve, 500))
-        this.palletList = [
-          { id: 1, code: 'P001', createTime: '2024-03-20 10:00' },
-          { id: 2, code: 'P002', createTime: '2024-03-20 10:15' },
-          // ... 其他数据
-        ]
-      } finally {
-        this.loading = false
-      }
-    },
-    onPalletTap(item) {
-      // 处理托盘点击事件
-      console.log('托盘被点击：', item);
-    }
-  }
-}
-</script> 

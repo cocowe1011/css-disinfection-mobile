@@ -30,14 +30,14 @@
                 <text class="iconfont icon-preheat"></text>
                 <view class="item-content">
                   <text class="label">预热房</text>
-                  <text class="value">{{ order.preheatingRoom }}</text>
+                  <text class="value">{{ order.isPrint1 }}</text>
                 </view>
               </view>
               <view class="info-item">
                 <text class="iconfont icon-sterilizer"></text>
                 <view class="item-content">
                   <text class="label">灭菌柜</text>
-                  <text class="value">{{ order.sterilizer }}</text>
+                  <text class="value">{{ order.isPrint2 }}</text>
                 </view>
               </view>
             </view>
@@ -50,14 +50,14 @@
                 <text class="iconfont icon-in"></text>
                 <view class="item-content">
                   <text class="label">进货口</text>
-                  <text class="value">{{ order.inPort }}</text>
+                  <text class="value">{{ formatInPut(order.inPut) }}</text>
                 </view>
               </view>
               <view class="info-item">
                 <text class="iconfont icon-out"></text>
                 <view class="item-content">
                   <text class="label">出货口</text>
-                  <text class="value">{{ order.outPort }}</text>
+                  <text class="value">{{ formatOutPut(order.isPrint3) }}</text>
                 </view>
               </view>
             </view>
@@ -93,6 +93,25 @@ export default {
     loading: {
       type: Boolean,
       default: false
+    }
+  },
+  methods: {
+    formatInPut(value) {
+      const inPutMap = {
+        1: '一楼外部进货',
+        2: '二楼进货',
+        3: '三楼进货',
+        4: '不解析出口'
+      }
+      return inPutMap[value] || '未知'
+    },
+    formatOutPut(value) {
+      const outPutMap = {
+        0: '不解析',
+        1: '解析库',
+        2: '立体库'
+      }
+      return outPutMap[value] || '未知'
     }
   }
 }

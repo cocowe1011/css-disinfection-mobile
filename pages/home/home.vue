@@ -13,14 +13,23 @@
     <scroll-view 
       class="scroll-content"
       scroll-y
+      :refresher-enabled="true"
+      :refresher-triggered="isRefreshing"
+      @refresherrefresh="onRefresh"
       :style="{ opacity: pageReady ? 1 : 0 }"
     >
       <view class="content">
         <!-- 订单信息卡片 -->
         <order-card :order="currentOrder"></order-card>
         
+        <!-- 暂无数据提示 -->
+        <view v-if="!currentOrder.id" class="empty-state">
+          <text class="iconfont icon-empty"></text>
+          <text class="empty-text">暂无队列数据</text>
+        </view>
+        
         <!-- 队列区域列表 -->
-        <view class="queue-areas">
+        <view v-else class="queue-areas">
           <view 
             class="queue-group" 
             v-for="group in queueGroups" 
@@ -53,6 +62,7 @@
 
 <script>
 import OrderCard from '@/components/order-card.vue'
+import request from '@/config/request'
 
 export default {
   components: {
@@ -60,64 +70,10 @@ export default {
   },
   data() {
     return {
+      isRefreshing: false,
       username: '张工',
-      currentOrder: {
-        batchId: 'B2024032001',
-        productName: '消毒液',
-        preheatingRoom: 'A区预热房',
-        sterilizer: '1号灭菌柜',
-        inPort: '1号进货口',
-        outPort: '2号出货口',
-        status: '进行中',
-      },
-      queueGroups: [
-        {
-          title: '物流区域',
-          areas: [
-            { id: 1, name: '上货区', palletCount: 8 },
-            { id: 2, name: '下货区', palletCount: 5 },
-            { id: 3, name: '缓冲区1', palletCount: 3 },
-            { id: 4, name: '缓冲区2', palletCount: 4 },
-            { id: 5, name: '缓冲区3', palletCount: 6 },
-          ]
-        },
-        {
-          title: '预热房区域1',
-          areas: [
-            { id: 6, name: '预热房A1', palletCount: 4 },
-            { id: 7, name: '预热房B1', palletCount: 3 },
-            { id: 8, name: '预热房C1', palletCount: 5 },
-            { id: 9, name: '预热房D1', palletCount: 2 },
-            { id: 10, name: '预热房E1', palletCount: 6 },
-            { id: 11, name: '预热房F1', palletCount: 4 },
-            { id: 12, name: '预热房G1', palletCount: 3 },
-          ]
-        },
-        {
-          title: '预热房区域2',
-          areas: [
-            { id: 13, name: '预热房A2', palletCount: 5 },
-            { id: 14, name: '预热房B2', palletCount: 4 },
-            { id: 15, name: '预热房C2', palletCount: 3 },
-            { id: 16, name: '预热房D2', palletCount: 6 },
-            { id: 17, name: '预热房E2', palletCount: 2 },
-            { id: 18, name: '预热房F2', palletCount: 5 },
-            { id: 19, name: '预热房G2', palletCount: 4 },
-          ]
-        },
-        {
-          title: '灭菌区域',
-          areas: [
-            { id: 20, name: '灭菌区1#', palletCount: 7 },
-            { id: 21, name: '灭菌区2#', palletCount: 5 },
-            { id: 22, name: '灭菌区3#', palletCount: 4 },
-            { id: 23, name: '灭菌区4#', palletCount: 6 },
-            { id: 24, name: '灭菌区5#', palletCount: 3 },
-            { id: 25, name: '灭菌区6#', palletCount: 5 },
-            { id: 26, name: '灭菌区7#', palletCount: 4 },
-          ]
-        }
-      ],
+      currentOrder: {},
+      queueGroups: [],
       statusBarHeight: 0,
       pageReady: false
     }
@@ -127,36 +83,149 @@ export default {
     const systemInfo = uni.getSystemInfoSync()
     this.statusBarHeight = systemInfo.statusBarHeight
     
-    // 模拟数据加载
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // 加载初始数据，不显示提示
+    const hasOrder = await this.fetchOrderData(false)
+    if (hasOrder) {
+      await this.getQueueData()
+    } else {
+      this.queueGroups = []
+    }
+    // 显示页面
     this.pageReady = true
   },
   methods: {
+    async getQueueData() {
+      try {
+        const res = await request.post('/queue_info/queryQueueList')
+        if (res.code === '200' && Array.isArray(res.data)) {
+          this.processQueueData(res.data)
+        }
+      } catch (error) {
+        console.error('获取队列数据失败:', error)
+      }
+    },
+
+    processQueueData(data) {
+      // 定义区域分组
+      const groups = {
+        '上下货区域': ['上货区', '下货区-不解析', '下货区-立体库', '下货区-解析库', '小车一区', '小车二区', '小车三区'],
+        '预热房区域1': ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'],
+        '预热房区域2': ['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2'],
+        '灭菌区': ['A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3']
+      }
+
+      // 初始化结果数组
+      const result = []
+      let globalIndex = 1
+
+      // 处理每个分组
+      for (const [groupTitle, areaNames] of Object.entries(groups)) {
+        const areas = []
+        
+        // 查找每个区域名称对应的数据
+        for (const areaName of areaNames) {
+          const areaData = data.find(item => item.queueName === areaName)
+          if (areaData) {
+            // 解析托盘信息
+            let trayInfo = []
+            try {
+              trayInfo = areaData.trayInfo ? JSON.parse(areaData.trayInfo) : []
+            } catch (e) {
+              console.error('解析托盘信息失败:', e)
+            }
+
+            areas.push({
+              id: globalIndex++,
+              name: areaData.queueName,
+              palletCount: trayInfo.length,
+              queueId: areaData.id  // 使用接口返回的原始id
+            })
+          }
+        }
+
+        // 只添加有区域的分组
+        if (areas.length > 0) {
+          result.push({
+            title: groupTitle,
+            areas: areas
+          })
+        }
+      }
+
+      this.queueGroups = result
+    },
     handleLogout() {
       uni.clearStorageSync()
       uni.reLaunch({
         url: '/pages/login/login'
       })
     },
+    
+    // 获取订单数据
+    async fetchOrderData(showToast = true) {
+      try {
+        const res = await request.post('/order_info/getNowRunningOrder')
+        if (res.code === '200') {
+          if (res.data) {
+            this.currentOrder = { ...res.data }
+            if (showToast) {
+              uni.showToast({
+                title: '刷新成功',
+                icon: 'success'
+              })
+            }
+            return true
+          } else {
+            this.currentOrder = {}
+            if (showToast) {
+              uni.showToast({
+                title: '暂无运行订单数据',
+                icon: 'none'
+              })
+            }
+            return false
+          }
+        } else {
+          if (showToast) {
+            uni.showToast({
+              title: res.message || '获取数据失败',
+              icon: 'none'
+            })
+          }
+          return false
+        }
+      } catch (error) {
+        console.error('获取运行订单数据失败:', error)
+        if (showToast) {
+          uni.showToast({
+            title: '网络异常',
+            icon: 'error'
+          })
+        }
+        return false
+      }
+    },
+    
+    // 下拉刷新
+    async onRefresh() {
+      this.isRefreshing = true
+      const hasOrder = await this.fetchOrderData()
+      if (hasOrder) {
+        await this.getQueueData()
+      } else {
+        this.queueGroups = []
+      }
+      this.isRefreshing = false
+    },
+    
     navigateToQueue(area) {
       uni.showLoading({
         title: '加载中...',
         mask: true
       })
       
-      // 先准备好数据
-      const palletList = [
-        { id: 1, code: 'P001', createTime: '2024-03-20 10:00' },
-        { id: 2, code: 'P002', createTime: '2024-03-20 10:15' },
-        // ... 其他数据
-      ]
-      
-      // 将数据存到全局状态或缓存中
-      getApp().globalData = getApp().globalData || {}
-      getApp().globalData.palletList = palletList
-      
       uni.navigateTo({
-        url: `/pages/queue/queue?id=${area.id}&name=${area.name}`,
+        url: `/pages/queue/queue?queueId=${area.queueId}&name=${area.name}`,
         success: () => {
           uni.hideLoading()
         },
@@ -308,6 +377,25 @@ export default {
           }
         }
       }
+    }
+  }
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100rpx 0;
+    
+    .iconfont {
+      font-size: 120rpx;
+      color: #ccc;
+      margin-bottom: 20rpx;
+    }
+    
+    .empty-text {
+      font-size: 32rpx;
+      color: #999;
     }
   }
 }
