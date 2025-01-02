@@ -43,7 +43,7 @@
           @delete="handleDelete"
           @move="handleMove"
           :loading="loading"
-          @tap="onPalletTap"
+          @pallet-tap="onPalletTap"
         ></pallet-list>
       </view>
     </scroll-view>
@@ -55,6 +55,71 @@
       @close="showQueueSelector = false"
       @select="handleQueueSelect"
     />
+    
+    <!-- 订单信息弹窗 -->
+    <uni-popup ref="orderPopup" type="center">
+      <view class="order-popup">
+        <view class="order-popup-header">
+          <text class="title">订单信息</text>
+          <text class="close-btn" @tap="closeOrderPopup">×</text>
+        </view>
+        <view class="order-popup-content">
+          <view class="info-item" v-if="orderInfo.orderId">
+            <text class="label">订单编号：</text>
+            <text class="value">{{ orderInfo.orderId }}</text>
+          </view>
+          <view class="info-item" v-if="orderInfo.productName">
+            <text class="label">产品名称：</text>
+            <text class="value">{{ orderInfo.productName }}</text>
+          </view>
+          <view class="info-item" v-if="orderInfo.batchId">
+            <text class="label">批次号：</text>
+            <text class="value">{{ orderInfo.batchId }}</text>
+          </view>
+          <view class="info-section" v-if="orderInfo.isPrint1 || orderInfo.isPrint2">
+            <view class="section-title">生产设备</view>
+            <view class="section-content">
+              <view class="device-item" v-if="orderInfo.isPrint1">
+                <text class="iconfont icon-preheat"></text>
+                <view class="item-content">
+                  <text class="label">预热房</text>
+                  <text class="value">{{ orderInfo.isPrint1 }}</text>
+                </view>
+              </view>
+              <view class="device-item" v-if="orderInfo.isPrint2">
+                <text class="iconfont icon-sterilizer"></text>
+                <view class="item-content">
+                  <text class="label">灭菌柜</text>
+                  <text class="value">{{ orderInfo.isPrint2 }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          <view class="info-section" v-if="orderInfo.inPut || orderInfo.isPrint3">
+            <view class="section-title">出入口</view>
+            <view class="section-content">
+              <view class="device-item" v-if="orderInfo.inPut">
+                <text class="iconfont icon-in"></text>
+                <view class="item-content">
+                  <text class="label">进货口</text>
+                  <text class="value">{{ formatInPut(orderInfo.inPut) }}</text>
+                </view>
+              </view>
+              <view class="device-item" v-if="orderInfo.isPrint3">
+                <text class="iconfont icon-out"></text>
+                <view class="item-content">
+                  <text class="label">出货口</text>
+                  <text class="value">{{ formatOutPut(orderInfo.isPrint3) }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          <view v-if="!orderInfo.orderId" class="no-data">
+            暂无订单信息
+          </view>
+        </view>
+      </view>
+    </uni-popup>
   </view>
 </template>
 
@@ -84,7 +149,8 @@ export default {
       pageReady: false,
       isLoaded: false,
       isReady: false,
-      currentOrder: null
+      currentOrder: null,
+      orderInfo: {}  // 添加订单信息对象
     }
   },
   async onLoad(options) {
@@ -139,7 +205,7 @@ export default {
         const newTray = {
           trayCode: scanCode,
           trayTime: new Date().toISOString().replace('T', ' ').split('.')[0],
-          batchId: this.currentOrder.orderId
+          batchId: this.currentOrder.batchId
         }
         
         console.log('新托盘信息:', newTray)
@@ -253,9 +319,15 @@ export default {
         this.loading = false
       }
     },
-    onPalletTap(item) {
-      // 处理托盘点击事件
-      console.log('托盘被点击：', item);
+    async onPalletTap(item) {
+      if (item.batchId) {
+        await this.fetchOrderInfo(item.batchId)
+      } else {
+        uni.showToast({
+          title: '该托盘未关联订单',
+          icon: 'none'
+        })
+      }
     },
     // 更新队列信息的公共方法
     async updateQueueInfo(trayInfo) {
@@ -305,6 +377,51 @@ export default {
       } catch (error) {
         console.error('获取当前订单失败:', error)
       }
+    },
+    // 查询订单信息
+    async fetchOrderInfo(batchId) {
+      try {
+        const res = await request.get(`/order_info/getOrderInfoByBatchId?batchId=${batchId}`)
+        if (res.code === '200' && res.data) {
+          this.orderInfo = res.data
+          this.$refs.orderPopup.open()
+        } else {
+          this.orderInfo = {}
+          uni.showToast({
+            title: '未找到订单信息',
+            icon: 'none'
+          })
+        }
+      } catch (error) {
+        console.error('获取订单信息失败:', error)
+        uni.showToast({
+          title: '获取订单信息失败',
+          icon: 'none'
+        })
+      }
+    },
+    // 格式化进货口信息
+    formatInPut(value) {
+      const inPutMap = {
+        1: '一楼外部进货',
+        2: '二楼进货',
+        3: '三楼进货',
+        4: '不解析出口'
+      }
+      return inPutMap[value] || '未知'
+    },
+    // 格式化出货口信息
+    formatOutPut(value) {
+      const outPutMap = {
+        0: '不解析',
+        1: '解析库',
+        2: '立体库'
+      }
+      return outPutMap[value] || '未知'
+    },
+    // 关闭订单弹窗
+    closeOrderPopup() {
+      this.$refs.orderPopup.close()
     }
   }
 }
@@ -500,5 +617,116 @@ export default {
 @keyframes rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.order-popup {
+  background: #fff;
+  width: 600rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  
+  .order-popup-header {
+    padding: 30rpx;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    
+    .title {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .close-btn {
+      font-size: 40rpx;
+      color: #999;
+      padding: 0 20rpx;
+    }
+  }
+  
+  .order-popup-content {
+    padding: 30rpx;
+    max-height: 60vh;
+    overflow-y: auto;
+    
+    .info-item {
+      margin-bottom: 20rpx;
+      display: flex;
+      align-items: flex-start;
+      
+      .label {
+        color: #666;
+        font-size: 28rpx;
+        width: 160rpx;
+        flex-shrink: 0;
+      }
+      
+      .value {
+        color: #333;
+        font-size: 28rpx;
+        flex: 1;
+      }
+    }
+
+    .info-section {
+      margin-bottom: 30rpx;
+      
+      .section-title {
+        font-size: 28rpx;
+        color: #333;
+        font-weight: bold;
+        margin-bottom: 16rpx;
+        padding-left: 16rpx;
+        border-left: 4rpx solid $primary-color;
+      }
+      
+      .section-content {
+        display: flex;
+        margin: -10rpx;
+        
+        .device-item {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          margin: 10rpx;
+          padding: 20rpx;
+          background: #e5eaf2;
+          border-radius: $border-radius;
+          transition: all 0.3s ease;
+          
+          .iconfont {
+            font-size: 40rpx;
+            color: $primary-color;
+            margin-right: 16rpx;
+          }
+          
+          .item-content {
+            flex: 1;
+            
+            .label {
+              font-size: 24rpx;
+              color: $text-secondary;
+              margin-bottom: 6rpx;
+              display: block;
+            }
+            
+            .value {
+              font-size: 28rpx;
+              color: $text-primary;
+              font-weight: 500;
+            }
+          }
+        }
+      }
+    }
+    
+    .no-data {
+      text-align: center;
+      color: #999;
+      font-size: 28rpx;
+      padding: 40rpx 0;
+    }
+  }
 }
 </style>

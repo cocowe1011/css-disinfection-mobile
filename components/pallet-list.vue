@@ -70,7 +70,7 @@ export default {
       })
     },
     handleTap(item) {
-      this.$emit('tap', item);
+      this.$emit('pallet-tap', item);
     }
   },
   mounted() {
