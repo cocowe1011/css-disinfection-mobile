@@ -83,14 +83,16 @@ export default {
       navTextColor: '#FFFFFF',
       pageReady: false,
       isLoaded: false,
-      isReady: false
+      isReady: false,
+      currentOrder: null
     }
   },
   async onLoad(options) {
-    console.log('接收到的参数:', options)
     this.areaId = options.queueId
     this.areaName = options.name
     
+    // 获取当前运行的订单
+    await this.getCurrentOrder()
     // 获取托盘数据
     await this.fetchPalletList()
   },
@@ -103,21 +105,68 @@ export default {
       this.scanning = true
       
       try {
-        const res = await uni.scanCode()
-        console.log('扫码结果：', res)
-        
-        // 这里添加托盘
-        this.palletList.push({
-          id: Date.now(),
-          code: res.result,
-          createTime: new Date().toLocaleString()
+        const scanResult = await uni.scanCode({
+          scanType: ['barCode'],  // 只支持条形码
+          onlyFromCamera: true    // 只允许从相机扫码
         })
         
-        uni.showToast({
-          title: '添加成功',
-          icon: 'success'
-        })
+        console.log('扫码原始结果:', scanResult)
+        
+        // 检查是否有当前订单
+        if (!this.currentOrder?.orderId) {
+          uni.showToast({
+            title: '请先选择订单',
+            icon: 'none'
+          })
+          return
+        }
+        
+        // 获取实际的扫码结果
+        const scanData = Array.isArray(scanResult) ? scanResult[1] : scanResult
+        const scanCode = scanData?.result
+        
+        console.log('处理后的扫码结果:', scanCode)
+        
+        if (!scanCode) {
+          uni.showToast({
+            title: '无效的扫码结果',
+            icon: 'none'
+          })
+          return
+        }
+        
+        // 构建新的托盘信息
+        const newTray = {
+          trayCode: scanCode,
+          trayTime: new Date().toISOString().replace('T', ' ').split('.')[0],
+          batchId: this.currentOrder.orderId
+        }
+        
+        console.log('新托盘信息:', newTray)
+        
+        // 添加到现有托盘列表
+        const updatedTrayInfo = this.palletList.map(tray => ({
+          trayCode: tray.code || tray.trayCode,
+          trayTime: tray.createTime || tray.trayTime,
+          batchId: tray.batchId || ''
+        }))
+        
+        // 添加新托盘
+        updatedTrayInfo.push(newTray)
+        
+        console.log('更新的托盘列表:', updatedTrayInfo)
+        
+        // 更新队列信息
+        const success = await this.updateQueueInfo(updatedTrayInfo)
+        
+        if (success) {
+          uni.showToast({
+            title: '添加成功',
+            icon: 'success'
+          })
+        }
       } catch (error) {
+        console.error('扫码错误:', error)
         uni.showToast({
           title: '扫描失败',
           icon: 'error'
@@ -126,10 +175,24 @@ export default {
         this.scanning = false
       }
     },
-    handleDelete(pallet) {
-      const index = this.palletList.findIndex(p => p.id === pallet.id)
-      if (index > -1) {
-        this.palletList.splice(index, 1)
+    async handleDelete(pallet) {
+      // 过滤掉要删除的托盘
+      const updatedTrayInfo = this.palletList
+        .filter(p => p.id !== pallet.id)  // 先过滤掉要删除的托盘
+        .map(tray => ({                   // 然后转换格式
+          trayCode: tray.code || tray.trayCode,
+          trayTime: tray.createTime || tray.trayTime,
+          batchId: tray.batchId || ''
+        }))
+      
+      // 更新队列信息
+      const success = await this.updateQueueInfo(updatedTrayInfo)
+      
+      if (success) {
+        uni.showToast({
+          title: '删除成功',
+          icon: 'success'
+        })
       }
     },
     handleMove(pallet) {
@@ -193,6 +256,55 @@ export default {
     onPalletTap(item) {
       // 处理托盘点击事件
       console.log('托盘被点击：', item);
+    },
+    // 更新队列信息的公共方法
+    async updateQueueInfo(trayInfo) {
+      try {
+        // 确保每个托盘都有必要的字段
+        const formattedTrayInfo = trayInfo.map(tray => ({
+          trayCode: tray.trayCode,
+          trayTime: tray.trayTime,
+          batchId: tray.batchId
+        }))
+        
+        // 构建更新参数
+        const params = {
+          id: Number(this.areaId),
+          trayInfo: JSON.stringify(formattedTrayInfo)
+        }
+        
+        const res = await request.post('/queue_info/update', params)
+        
+        if (res.code === '200') {
+          // 更新成功后重新获取最新数据
+          await this.fetchPalletList()
+          return true
+        } else {
+          uni.showToast({
+            title: res.message || '操作失败',
+            icon: 'none'
+          })
+          return false
+        }
+      } catch (error) {
+        console.error('更新失败:', error)
+        uni.showToast({
+          title: '网络异常',
+          icon: 'error'
+        })
+        return false
+      }
+    },
+    // 获取当前运行的订单
+    async getCurrentOrder() {
+      try {
+        const res = await request.post('/order_info/getNowRunningOrder')
+        if (res.code === '200' && res.data) {
+          this.currentOrder = res.data
+        }
+      } catch (error) {
+        console.error('获取当前订单失败:', error)
+      }
     }
   }
 }
