@@ -11,7 +11,7 @@
     <view class="login-content">
       <view class="login-header">
         <image class="logo" src="/static/images/logo.png" mode="aspectFit"></image>
-        <text class="title">智慧车间管理系统</text>
+        <text class="title">移动WCS管理系统</text>
         <text class="subtitle">Intelligent Workshop Management</text>
       </view>
       

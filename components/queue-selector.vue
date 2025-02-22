@@ -41,18 +41,20 @@ export default {
     return {
       screenWidth: 375,
       queues: [
-        { id: 1, name: '预热区1号队列', count: 5 },
-        { id: 2, name: '预热区2号队列', count: 3 },
-        { id: 3, name: '预热区3号队列', count: 7 },
-        { id: 4, name: '灭菌区1号队列', count: 2 },
-        { id: 5, name: '灭菌区2号队列', count: 4 },
-        { id: 6, name: '灭菌区3号队列', count: 6 },
-        { id: 7, name: '冷却区1号队列', count: 3 },
-        { id: 8, name: '冷却区2号队列', count: 5 },
-        { id: 9, name: '冷却区3号队列', count: 4 },
-        { id: 10, name: '包装区1号队列', count: 6 },
-        { id: 11, name: '包装区2号队列', count: 3 },
-        { id: 12, name: '包装区3号队列', count: 5 }
+        { id: 1, name: '上货区', count: 5 },
+        { id: 2, name: '小车1区', count: 3 },
+        { id: 3, name: 'A1', count: 7 },
+        { id: 4, name: 'B1', count: 2 },
+        { id: 5, name: 'C1', count: 4 },
+        { id: 6, name: 'D1', count: 6 },
+        { id: 7, name: 'E1', count: 3 },
+        { id: 8, name: 'F1', count: 5 },
+        { id: 9, name: 'G1', count: 4 },
+        { id: 10, name: 'A2', count: 6 },
+        { id: 11, name: 'B2', count: 3 },
+        { id: 12, name: 'C2', count: 5 },
+		{ id: 13, name: 'D2', count: 5 },
+		{ id: 14, name: 'E2', count: 5 },
       ]
     }
   },
