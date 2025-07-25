@@ -1,8 +1,9 @@
+import serverConfig from './common.js'
+
 const config = {
-  baseUrl: process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:7005'  // 开发环境
-    : 'http://your-prod-api-domain/api', // 生产环境
-  timeout: 20000
+  baseUrl: serverConfig.getHttpUrl(),  // 使用公共配置
+  // 可选本地调试地址：'http://localhost:7005'
+  timeout: 5000
 }
 
 // 封装请求方法
