@@ -16,6 +16,8 @@ class AlarmWebSocketClient {
     this.onDisconnected = config.onDisconnected || null;
     this.onAlarmReceived = config.onAlarmReceived || null;
     this.onError = config.onError || null;
+    this.onScanResponse = config.onScanResponse || null;
+    this.onScanResult = config.onScanResult || null;
     
     this.alarmLogs = []; // 存储接收到的报警日志
   }
@@ -124,6 +126,16 @@ class AlarmWebSocketClient {
         this.handleAlarmMessage(data);
         break;
         
+      case 'scan_response':
+        // 处理扫码响应
+        this.handleScanResponse(data);
+        break;
+        
+      case 'scan_result':
+        // 处理扫码结果
+        this.handleScanResult(data);
+        break;
+        
       case 'pong':
         // 心跳响应
         break;
@@ -157,6 +169,34 @@ class AlarmWebSocketClient {
     if (this.onAlarmReceived) {
       this.onAlarmReceived(alarmLog);
     }
+  }
+
+  // 处理扫码响应
+  handleScanResponse(data) {
+    console.log('收到扫码响应:', data);
+    if (this.onScanResponse) {
+      this.onScanResponse(data);
+    }
+  }
+
+  // 处理扫码结果
+  handleScanResult(data) {
+    console.log('收到扫码结果:', data);
+    if (this.onScanResult) {
+      this.onScanResult(data);
+    }
+  }
+
+  // 发送扫码消息
+  sendScanCode(location, trayCode) {
+    const message = {
+      type: 'scan_code',
+      location: location,
+      trayCode: trayCode,
+      timestamp: new Date().toISOString()
+    };
+    
+    return this.send(message);
   }
 
   // 发送消息

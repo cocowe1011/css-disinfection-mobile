@@ -3,7 +3,7 @@ const serverConfig = {
   // 服务器IP地址
   ip: {
     development: '192.168.1.9',  // 开发环境IP
-    production: '10.120.50.99'    // 生产环境IP
+    production: '192.168.0.140'    // 生产环境IP
   },
   
   // 各服务端口配置

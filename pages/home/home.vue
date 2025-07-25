@@ -65,6 +65,12 @@
       <view v-if="unreadAlarmCount > 0" class="alarm-badge">{{ unreadAlarmCount }}</view>
     </view>
     
+    <!-- 扫码悬浮按钮 -->
+    <view class="fab-btn scan-fab" @tap="showScanLocationModal">
+      <text class="fab-text">扫码</text>
+      <text class="fab-text">上货</text>
+    </view>
+    
     <!-- 报警日志弹窗 -->
     <view class="modal-overlay" v-if="showAlarmModal" @tap="toggleAlarmModal">
       <view class="alarm-modal-content" @tap.stop>
@@ -127,6 +133,38 @@
         </view>
       </view>
     </view>
+    
+    <!-- 扫码地点选择弹窗 -->
+    <view class="modal-overlay" v-if="showScanModal" @tap="hideScanLocationModal">
+      <view class="scan-modal-content" @tap.stop>
+        <view class="scan-modal-header">
+          <text class="scan-modal-title">选择扫码地点</text>
+          <view class="scan-header-actions">
+            <view class="connection-status" :class="{'connected': wsStatus.isConnected, 'disconnected': !wsStatus.isConnected}">
+              <text class="status-dot"></text>
+              <text class="status-text">{{ wsStatus.isConnected ? '已连接' : '未连接' }}</text>
+            </view>
+            <view class="scan-close-btn" @tap="hideScanLocationModal">
+              <text class="close-text">×</text>
+            </view>
+          </view>
+        </view>
+        
+        <view class="scan-modal-body">
+          <view class="scan-location-list">
+            <view 
+              class="scan-location-item" 
+              v-for="location in scanLocations" 
+              :key="location.value"
+              @tap="selectScanLocation(location)"
+            >
+              <text class="location-name">{{ location.label }}</text>
+              <text class="iconfont icon-right"></text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -153,7 +191,18 @@ export default {
         isConnected: false
       },
       alarmLogs: [],
-      showAlarmModal: false
+      showAlarmModal: false,
+      // 扫码相关数据
+      showScanModal: false,
+      scanLocations: [
+        { label: '一楼接货站台', value: '一楼接货站台' },
+        { label: '一楼上货区', value: '一楼上货区' },
+        { label: '二楼A接货', value: '二楼A接货' },
+        { label: '二楼B接货', value: '二楼B接货' },
+        { label: '三楼A接货', value: '三楼A接货' },
+        { label: '三楼B接货', value: '三楼B接货' },
+        { label: '下货扫码处', value: '下货扫码处' }
+      ]
     }
   },
   computed: {
@@ -203,10 +252,11 @@ export default {
     processQueueData(data) {
       // 定义区域分组
       const groups = {
-        '上下货区域': ['上货区', '下货区-不解析', '下货区-立体库', '下货区-解析库', '小车一区', '小车二区', '小车三区'],
+        '上货区域': ['上货区'],
         '预热房区域1': ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'],
         '预热房区域2': ['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2'],
-        '灭菌区': ['A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3']
+        '灭菌区': ['A3', 'B3', 'C3', 'D3', 'E3', 'F3', 'G3'],
+        '下货区域': ['下货区']
       }
 
       // 初始化结果数组
@@ -337,7 +387,9 @@ export default {
         onConnected: this.onWebSocketConnected,
         onDisconnected: this.onWebSocketDisconnected,
         onAlarmReceived: this.onAlarmReceived,
-        onError: this.onWebSocketError
+        onError: this.onWebSocketError,
+        onScanResponse: this.onScanResponse,
+        onScanResult: this.onScanResult
       });
       
       this.wsClient.connect();
@@ -489,6 +541,129 @@ export default {
         // 静默处理震动失败（通常是因为缺少用户交互）
         console.log('震动提醒被浏览器阻止，需要用户交互后才能生效');
       }
+    },
+
+    // ============ 扫码相关方法 ============
+    // 显示扫码地点选择弹窗
+    showScanLocationModal() {
+      this.showScanModal = true;
+    },
+
+    // 隐藏扫码地点选择弹窗
+    hideScanLocationModal() {
+      this.showScanModal = false;
+    },
+
+    // 选择扫码地点
+    async selectScanLocation(location) {
+      this.hideScanLocationModal();
+      
+      // 检查WebSocket连接状态
+      if (!this.wsStatus.isConnected) {
+        uni.showToast({
+          title: 'WebSocket未连接，请检查网络',
+          icon: 'none'
+        });
+        return;
+      }
+
+      try {
+        // 调用扫码功能
+        const scanResult = await uni.scanCode({
+          scanType: ['barCode'],  // 只支持条形码
+          onlyFromCamera: true    // 只允许从相机扫码
+        });
+        
+        console.log('扫码结果:', scanResult);
+        
+        // 获取扫码结果
+        const scanData = Array.isArray(scanResult) ? scanResult[1] : scanResult;
+        const trayCode = scanData?.result;
+        
+        if (!trayCode) {
+          uni.showToast({
+            title: '无效的扫码结果',
+            icon: 'none'
+          });
+          return;
+        }
+
+        // 显示加载提示
+        uni.showLoading({
+          title: '处理中...',
+          mask: true
+        });
+
+        // 发送扫码消息到PC端
+        const success = this.wsClient.sendScanCode(location.value, trayCode);
+        
+        if (!success) {
+          uni.hideLoading();
+          uni.showToast({
+            title: '发送失败，请检查连接',
+            icon: 'none'
+          });
+          return;
+        }
+        
+        // 设置超时机制，10秒后自动隐藏loading
+        setTimeout(() => {
+          uni.hideLoading();
+        }, 10000);
+        
+      } catch (error) {
+        console.error('扫码失败:', error);
+        uni.hideLoading(); // 确保隐藏loading
+        uni.showToast({
+          title: '扫码失败',
+          icon: 'none'
+        });
+      }
+    },
+
+    // 处理扫码响应
+    onScanResponse(data) {
+      console.log('收到扫码响应:', data);
+      // 收到响应后立即隐藏loading，避免一直转圈
+      uni.hideLoading();
+      
+      if (!data.success) {
+        uni.showToast({
+          title: data.message || '扫码处理失败',
+          icon: 'none'
+        });
+      }
+    },
+
+    // 处理扫码结果
+    onScanResult(data) {
+      console.log('收到扫码结果:', data);
+      // 扫码结果处理，loading已经在onScanResponse中隐藏了
+      
+      if (data.success) {
+        uni.showToast({
+          title: '扫码成功',
+          icon: 'success'
+        });
+        
+        // 刷新托盘队列列表
+        this.refreshQueueData();
+      } else {
+        uni.showToast({
+          title: data.message || '扫码处理失败',
+          icon: 'none'
+        });
+      }
+    },
+
+    // 刷新托盘队列数据
+    async refreshQueueData() {
+      try {
+        await this.getQueueData();
+        // 移除队列刷新成功提示，避免过多提示信息
+      } catch (error) {
+        console.error('刷新队列数据失败:', error);
+      }
     }
   },
 
@@ -553,7 +728,7 @@ export default {
   
   .content {
     padding: 30rpx;
-    padding-bottom: env(safe-area-inset-bottom);  // 适配底部安全区域
+    padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);  // 适配底部安全区域和悬浮按钮
     
     .section-title {
       font-size: 32rpx;
@@ -750,6 +925,16 @@ export default {
     font-weight: 600;
     border: 2rpx solid #fff;
     box-shadow: 0 2rpx 8rpx rgba(239, 68, 68, 0.4);
+  }
+}
+
+/* 扫码悬浮按钮 */
+.fab-btn.scan-fab {
+  bottom: 280rpx;
+  background: #3b82f6 !important;
+
+  &:active {
+    background: #2563eb !important;
   }
 }
 
@@ -993,6 +1178,127 @@ export default {
           background: #4b5563;
         }
       }
+    }
+  }
+}
+
+// 扫码弹窗样式
+.scan-modal-content {
+  width: 90%;
+  max-width: 600rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  color: #333;
+}
+
+.scan-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+
+  .scan-modal-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .scan-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+  }
+
+  .connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 6rpx 12rpx;
+    border-radius: 12rpx;
+    background: #f3f4f6;
+    font-size: 22rpx;
+
+    .status-dot {
+      width: 12rpx;
+      height: 12rpx;
+      border-radius: 50%;
+      display: block;
+    }
+
+    &.connected .status-dot {
+      background: #10b981;
+    }
+
+    &.disconnected .status-dot {
+      background: #ef4444;
+    }
+
+    .status-text {
+      color: #6b7280;
+      font-weight: 500;
+    }
+  }
+
+  .scan-close-btn {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #e5e7eb;
+    
+    &:active {
+      background: #d1d5db;
+    }
+
+    .close-text {
+      font-size: 40rpx;
+      color: #6b7280;
+      font-weight: 300;
+    }
+  }
+}
+
+.scan-modal-body {
+  padding: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.scan-location-list {
+  .scan-location-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32rpx 24rpx;
+    border-bottom: 1px solid #f3f4f6;
+    transition: all 0.2s ease;
+
+    &:active {
+      background: #f9fafb;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .location-name {
+      font-size: 28rpx;
+      color: #1f2937;
+      font-weight: 500;
+    }
+
+    .iconfont {
+      font-size: 24rpx;
+      color: #9ca3af;
     }
   }
 }
